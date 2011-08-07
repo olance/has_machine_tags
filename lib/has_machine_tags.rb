@@ -15,14 +15,22 @@ module HasMachineTags
     # [:console] When true, adds additional instance methods to use mainly in irb.
     # [:reverse_has_many] Defines a has_many :through from tags to the model using the plural of the model name.
     # [:quick_mode] When true, enables a quick mode to input machine tags with HasMachineTags::InstanceMethods.tag_list=(). See examples at HasMachineTags::TagList.new().
+		# [:no_duplicates] When false, allows model objects to be tagged several times with the same tag (default: true)
     def has_machine_tags(options={})
-      class << self; attr_accessor :quick_mode; end
-      self.quick_mode = options[:quick_mode] || false
+      class << self
+				attr_accessor :quick_mode
+				attr_accessor :no_duplicates
+			end
+
+			self.quick_mode = options[:quick_mode] || false
+			self.no_duplicates = options[:no_duplicates] || true
+
       self.class_eval do
-        has_many :taggings, :as=>:taggable, :dependent=>:destroy
-        has_many :tags, :through=>:taggings
-        after_save :save_tags
-        
+        has_many :taggings, :as => :taggable, :dependent => :destroy
+        has_many :tags, :through => :taggings, :uniq => self.no_duplicates
+
+				after_save :save_tags
+
         include HasMachineTags::InstanceMethods
         extend HasMachineTags::Finder
         include HasMachineTags::Console::InstanceMethods if options[:console]
@@ -31,26 +39,27 @@ module HasMachineTags
         send scope_word, :tagged_with, lambda  { |*args|
           find_options_for_tagged_with(*args)
         }
-      end
+			end
+
       if options[:reverse_has_many]
         model = self.to_s
         'Tag'.constantize.class_eval do
           has_many(model.tableize, :through => :taggings, :source => :taggable, :source_type =>model)
         end
-      end
+			end
     end
   end
-    
+
   module InstanceMethods
     # Set tag list with an array of tags or comma delimited string of tags.
     def tag_list=(list)
       @tag_list = current_tag_list(list)
     end
-    
+
     def current_tag_list(list) #:nodoc:
-      TagList.new(list, :quick_mode=>self.class.quick_mode)
+      TagList.new(list, :quick_mode => self.class.quick_mode, :no_duplicates => self.class.no_duplicates)
     end
-    
+
     # Fetches latest tag list for an object
     def tag_list
       @tag_list ||= TagList.new(self.tags.map(&:name))
@@ -59,7 +68,7 @@ module HasMachineTags
     def quick_mode_tag_list
       tag_list.to_quick_mode_string
     end
-    
+
     protected
     # :stopdoc:
     def save_tags
@@ -76,6 +85,7 @@ module HasMachineTags
 
     def add_new_tags
       new_tags = tag_list - (self.tags || []).map(&:name)
+			new_tags.uniq! if self.class.no_duplicates
       new_tags.each do |t|
         self.tags << Tag.find_or_initialize_by_name(t)
       end
