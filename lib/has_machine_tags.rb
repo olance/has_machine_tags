@@ -57,7 +57,7 @@ module HasMachineTags
     end
 
     def current_tag_list(list) #:nodoc:
-      TagList.new(list, :quick_mode => self.class.quick_mode, :no_duplicates => self.class.no_duplicates)
+      TagList.new(list, :quick_mode => self.class.quick_mode)
     end
 
     # Fetches latest tag list for an object
