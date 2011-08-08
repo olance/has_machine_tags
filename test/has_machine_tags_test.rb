@@ -67,6 +67,34 @@ describe "HasMachineTags" do
       @taggable.save!
       @taggable.taggings.size.should == 1
       @taggable.tags.map(&:name).should == ['bling4']
-    end
+		end
+
+		it "doesn't associate tags more than once" do
+			tags = ["hey", "hey!"]
+
+			@taggable.tag_list = "hey, hey, hey!"
+			@taggable.save!
+
+			@taggable.taggings.size.should == 2
+			@taggable.tags.map(&:name).should == tags
+			@taggable.tag_list.should == tags
+		end
+
+		describe "without no_duplicates" do
+			before { @taggable = DuplicateTaggableModel.new }
+
+			it "allows duplicate tags" do
+				tags = ["hey", "hey", "hey!"]
+
+				@taggable.tag_list = "hey, hey, hey!"
+				@taggable.save!
+
+				@taggable.taggings.size.should == 3
+				@taggable.tags.map(&:name).should == tags
+				@taggable.tag_list.should == tags
+			end
+
+		end
+
   end
 end

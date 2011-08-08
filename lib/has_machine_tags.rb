@@ -19,14 +19,14 @@ module HasMachineTags
     def has_machine_tags(options={})
       class << self
 				attr_accessor :quick_mode
-				attr_accessor :no_duplicates
+				attr_reader :no_duplicates
 			end
 
 			self.quick_mode = options[:quick_mode] || false
-			self.no_duplicates = options[:no_duplicates] || true
+			@no_duplicates = options[:no_duplicates].nil? ? true : options[:no_duplicates]
 
       self.class_eval do
-        has_many :taggings, :as => :taggable, :dependent => :destroy
+				has_many :taggings, :as => :taggable, :dependent => :destroy
         has_many :tags, :through => :taggings, :uniq => self.no_duplicates
 
 				after_save :save_tags
@@ -57,7 +57,7 @@ module HasMachineTags
     end
 
     def current_tag_list(list) #:nodoc:
-      TagList.new(list, :quick_mode => self.class.quick_mode)
+			TagList.new(list, :quick_mode => self.class.quick_mode, :no_duplicates => self.class.no_duplicates)
     end
 
     # Fetches latest tag list for an object
@@ -85,10 +85,9 @@ module HasMachineTags
 
     def add_new_tags
       new_tags = tag_list - (self.tags || []).map(&:name)
-			new_tags.uniq! if self.class.no_duplicates
       new_tags.each do |t|
-        self.tags << Tag.find_or_initialize_by_name(t)
-      end
+				self.tags << Tag.find_or_initialize_by_name(t)
+			end
     end
     #:startdoc:
   end
