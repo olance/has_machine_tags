@@ -81,17 +81,18 @@ describe "HasMachineTags" do
 		end
 
 		describe "without no_duplicates" do
-			before { @taggable = DuplicateTaggableModel.new }
+			before { @duplicate_taggable = DuplicateTaggableModel.new }
 
 			it "allows duplicate tags" do
+				ActiveRecord::Base.logger.warn "-------------"
 				tags = ["hey", "hey", "hey!"]
 
-				@taggable.tag_list = "hey, hey, hey!"
-				@taggable.save!
+				@duplicate_taggable.tag_list = "hey, hey, hey!"
+				@duplicate_taggable.save!
 
-				@taggable.taggings.size.should == 3
-				@taggable.tags.map(&:name).should == tags
-				@taggable.tag_list.should == tags
+				@duplicate_taggable.taggings.size.should == 3
+				@duplicate_taggable.tag_list.should == tags
+				@duplicate_taggable.tags(true).map(&:name).should == tags
 			end
 
 		end

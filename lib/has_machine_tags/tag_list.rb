@@ -18,7 +18,7 @@ module HasMachineTags
     def initialize(string_or_array, options={})
       @delimiter, @default_predicate = ',', 'tags'
       @options = options
-      array = string_or_array.is_a?(Array) ? string_or_array : string_or_array.split(/\s*#{delimiter}\s*/)
+			array = string_or_array.is_a?(Array) ? string_or_array : string_or_array.split(/\s*#{delimiter}\s*/)
       array = parse_quick_mode(array) if @options[:quick_mode]
 			concat array
 			uniq! if @options[:no_duplicates]
