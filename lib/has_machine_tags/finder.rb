@@ -23,13 +23,23 @@ module HasMachineTags
 
     # :stopdoc:
     def find_options_for_tagged_with(tags, options = { })
+      # Create a TagList out of given tags, exit if it's empty
       tags = TagList.new(tags)
       return { } if tags.empty?
+
+      # Build conditions array from given conditions and from tag list
       conditions = []
       conditions << sanitize_sql(options.delete(:conditions)) if options[:conditions]
       conditions << condition_from_tags(tags, options)
+
+      # Clean non-sql options
       options.delete(:match_all)
-      default_find_options_for_tagged_with.update(:conditions=>conditions.join(" AND ")).update(options)
+
+      # Update default options with computed ones
+      defaults = default_find_options_for_tagged_with
+      defaults.delete(:joins) if options[:match_all]
+
+      defaults.update(:conditions => conditions.join(" AND ")).update(options)
     end
 
     def condition_from_tags(tags, options = { })
