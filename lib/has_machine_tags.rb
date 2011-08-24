@@ -79,22 +79,16 @@ module HasMachineTags
     end
 
     def delete_unused_tags
-			ActiveRecord::Base.logger.warn "Tags when deleting unused ones at first save: #{tags.inspect}"
-      unused_tags = tags.select {|e| !tag_list.include?(e.name) }
+			unused_tags = tags.select {|e| !tag_list.include?(e.name) }
       tags.delete(*unused_tags)
-			ActiveRecord::Base.logger.warn "Tags once deleted: #{tags.inspect}"
     end
 
     def add_new_tags
-			ActiveRecord::Base.logger.warn "Tags before adding new ones at first save: #{tags.inspect} - tag list: #{tag_list}"
 			new_tags = tag_list - (self.tags || []).map(&:name)
-			ActiveRecord::Base.logger.warn "New tags: #{new_tags.inspect}"
 			new_tags = new_tags.collect do |t|
 				Tag.find_or_initialize_by_name(t)
 			end
-			ActiveRecord::Base.logger.warn "New tags: #{new_tags.inspect}"
-      self.tags	<< new_tags
-			ActiveRecord::Base.logger.warn "Tags once new ones are added: #{tags.inspect}"
+			self.tags	<< new_tags
     end
     #:startdoc:
   end
