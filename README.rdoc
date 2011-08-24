@@ -15,6 +15,15 @@ documentation for a more thorough explanation.
 A demo app using this plugin is {here}[http://github.com/cldwalker/tag-tree].
 This gem should run on all major Ruby versions and work with Rails 2.3.x and up.
 
+
+== About this fork
+
+I (Olivier Lance) have forked has_machine_tags to add specific features I need for one of my projects:
+* Add a *no_duplicates* option to `has_machine_tags` to avoid duplicate tags on model
+* Add a *match_all* option to `tagged_with` to be able to find models tagged with all given tags (regular AND machine tags)
+* Add a *numeric_match* option to allow queries such as `Model.tagged_with "geo:lat>=0, geo:lat<=90" # in northern hemisphere`
+
+
 == Install
 
 Install as a gem
@@ -131,7 +140,7 @@ these characters are off limit unless used in the machine tag context:
 
 == Todo
 
-* Add a match_all option to tagged_with().
+* <s>Add a match_all option to tagged_with().</s>
 * More helper methods ie for showing relations between namespaces, predicates + values
 * Possible add support for other ORM's ie DataMapper.
 * Play friendly with other tagging plugins as needed.
