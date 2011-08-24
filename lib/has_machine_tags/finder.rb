@@ -42,36 +42,49 @@ module HasMachineTags
       defaults.update(:conditions => conditions.join(" AND ")).update(options)
     end
 
-    def condition_from_tags(tags, options = { })
-      options[:match_all] ? match_all_tags_sql(tags) : match_any_tag_sql(tags)
+    # Return SQL conditions for the given tag list & options
+    def condition_from_tags(tags, options = {})
+      options[:match_all] ? match_all_tags_sql(tags, options) : match_any_tag_sql(tags, options)
     end
 
-    def match_any_tag_sql(tags)
+    # Return SQL conditions
+    def conditions_for_tag(tag, options = {})
+      machine_tag = false
+
+      str = ""
+      if match = Tag.match_wildcard_machine_tag(tag)
+        machine_tag = true
+        str = match.map { |k, v|
+          sanitize_sql(["#{tags_alias}.#{k} = ?", v])
+        }.join(" AND ")
+      else
+        str = sanitize_sql(["#{tags_alias}.name = ?", tag])
+      end
+
+      if block_given?
+        str = yield(machine_tag, str)
+      end
+
+      str
+    end
+
+    def match_any_tag_sql(tags, options = {})
       tag_sql = tags.map { |t|
-        if match = Tag.match_wildcard_machine_tag(t)
-          string = match.map { |k, v|
-            sanitize_sql(["#{tags_alias}.#{k} = ?", v])
-          }.join(" AND ")
-          "(#{string})"
-        else
-          sanitize_sql(["#{tags_alias}.name = ?", t])
+        conditions_for_tag t, options do |machine_tag, condition|
+          machine_tag ? "(#{condition})" : condition
         end
       }.join(" OR ")
     end
 
-    def match_all_tags_sql(tags)
+    def match_all_tags_sql(tags, options = {})
       tag_sql = tags.map { |t|
         # Create sub-requests returning taggable IDs being tagged by each tag
         string = "SELECT #{taggings_alias}.taggable_id FROM #{Tagging.table_name} #{taggings_alias} " +
                  "LEFT JOIN #{Tag.table_name} #{tags_alias} ON #{taggings_alias}.tag_id = #{tags_alias}.id " +
                  "WHERE #{taggings_alias}.taggable_type = #{quote_value(base_class.name)} AND ("
 
-        if match = Tag.match_wildcard_machine_tag(t)
-          string += match.map { |k, v|
-            sanitize_sql(["#{tags_alias}.#{k} = ?", v])
-          }.join(" AND ") + ")"
-        else
-          string += "#{sanitize_sql(["#{tags_alias}.name = ?", t])})"
+        conditions_for_tag t, options do |machine_tag, condition|
+          string += "#{condition})"
         end
 
         string
