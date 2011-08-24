@@ -91,7 +91,7 @@ describe "HasMachineTags" do
 
 				@duplicate_taggable.taggings.count.should == 3
 				@duplicate_taggable.tag_list.should == tags
-				@duplicate_taggable.tags(false).map(&:name).should == tags
+				@duplicate_taggable.tags(true).map(&:name).should == tags
 			end
 
 		end
