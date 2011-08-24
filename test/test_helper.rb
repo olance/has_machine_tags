@@ -22,6 +22,11 @@ ActiveRecord::Base.establish_connection('sqlite3')
 
 #Define schema
 require File.join(File.dirname(__FILE__), 'schema')
+
+class DuplicateTaggableModel < ActiveRecord::Base
+	has_machine_tags :no_duplicates => false
+end
+
 class TaggableModel < ActiveRecord::Base
   has_machine_tags
 end
