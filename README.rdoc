@@ -19,10 +19,10 @@ This gem should run on all major Ruby versions and work with Rails 2.3.x and up.
 == About this fork
 
 I (Olivier Lance) have forked has_machine_tags to add specific features I need for one of my projects:
-* Add a _no_duplicates_ option to has_machine_tags to avoid duplicate tags on model (DONE)
-* Add a _match_all_ option to tagged_with to be able to find models tagged with all given tags (regular AND machine tags) (DONE)
-* Add a _numeric_match_ option to allow queries such as:
-    Model.tagged_with "geo:lat>=0, geo:lat<=90", :numeric_match => true # in northern hemisphere
+* Add a _no_duplicates_ option to has_machine_tags to avoid duplicate tags on model *(DONE)*
+* Add a _match_all_ option to tagged_with to be able to find models tagged with all given tags (regular AND machine tags) *(DONE)*
+* Add a _comparison_match_ option to allow queries such as: *(DONE)*
+    Model.tagged_with "geo:lat>=0, geo:lat<=90", { :match_all => true, :comparison_match => true } # in northern hemisphere
 
 
 == Install
