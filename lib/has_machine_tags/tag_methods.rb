@@ -66,7 +66,9 @@ module HasMachineTags
   module TagMethods
     NAMESPACE_REGEX = "[a-z](?:[a-z0-9_]+)"
     PREDICATE_REGEX = "[a-z](?:[a-z0-9_-]+)"
-    VALUE_REGEX = '.+'
+    VALUE_REGEX     = '.+'
+    OPERATOR_REGEX  = "<=?|=|>=?"
+    NUMERIC_VALUE_REGEX = "[+-]?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?"
     #TODO: use delimiters in this file
     PREDICATE_DELIMITER = ':'
     VALUE_DELIMITER = '='
@@ -99,22 +101,22 @@ module HasMachineTags
         end
         find(:all, :conditions=>conditions)
       end
-      
+
       # Builds a machine tag string given namespace, predicate and value.
       def build_machine_tag(namespace, predicate, value)
         "#{namespace}:#{predicate}=#{value}"
       end
-      
+
       # Returns an array of machine tag parts: [namespace, predicate, value]
       def split_machine_tag(machine_tag)
         extract_from_name(machine_tag) || []
       end
-      
+
       # Boolean indicating if given tag is a machine tag.
       def machine_tag?(machine_tag)
         !extract_from_name(machine_tag).nil?
       end
-      
+
       def extract_from_name(tag_name) #:nodoc:
         (tag_name =~ /^(#{NAMESPACE_REGEX})\:(#{PREDICATE_REGEX})\=(#{VALUE_REGEX})$/) ? [$1, $2, $3] : nil
       end
@@ -138,6 +140,25 @@ module HasMachineTags
           nil
         end
       end
+
+      # Identify components of a comparison machine tag: namespace, predicate, value AND comparison operator
+      # In a comparison machine tag, value *must* be a number (see NUMERIC_VALUE_REGEX constant)
+      # Unlike match_wildcard_machine_tag, this method *will not* return nil if name represents a regular machine tag
+      def match_comparison_machine_tag(name)
+        if name =~ /^(#{NAMESPACE_REGEX}|\*)\:(#{PREDICATE_REGEX}|\*)(#{OPERATOR_REGEX})(#{NUMERIC_VALUE_REGEX}|\*)?$/
+          result = [[:namespace, $1], [:predicate, $2], [:operator, $3], [:value, $4]].select {|k,v| ![nil,'*'].include?(v) }
+        #duo shortcuts
+        elsif name =~ /^(#{NAMESPACE_REGEX}\:#{PREDICATE_REGEX})|(#{PREDICATE_REGEX}(#{OPERATOR_REGEX})#{NUMERIC_VALUE_REGEX})|(#{NAMESPACE_REGEX}\.#{VALUE_REGEX})$/
+          $1 ? [:namespace, :predicate].zip($1.split(":")) : ($2 ? (op=$3 ; ([:predicate, :value].zip($2.split(op)) | [[:operator, op]])) :
+            [:namespace, :value].zip($4.split('.')) )
+        #single shortcuts
+        elsif name =~ /^((#{NAMESPACE_REGEX})(?:\:)|(#{PREDICATE_REGEX})(?:\=)|(#{OPERATOR_REGEX})(#{VALUE_REGEX}))$/
+          $2 ? [[:namespace, $2]] : ($3 ? [[:predicate, $3]] : [[:operator, $4], [:value, $5]])
+        else
+          nil
+        end
+      end
+
     end
   
     module InstanceMethods

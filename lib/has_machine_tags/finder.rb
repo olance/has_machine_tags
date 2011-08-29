@@ -34,6 +34,7 @@ module HasMachineTags
 
       # Clean non-sql options
       options.delete(:match_all)
+      options.delete(:comparison_match)
 
       # Update default options with computed ones
       defaults = default_find_options_for_tagged_with
@@ -49,33 +50,46 @@ module HasMachineTags
 
     # Return SQL conditions
     def conditions_for_tag(tag, options = {})
-      machine_tag = false
-
+      wildcard_tag = false
       str = ""
-      if match = Tag.match_wildcard_machine_tag(tag)
-        machine_tag = true
+      match_method = options[:comparison_match] ? :match_comparison_machine_tag : :match_wildcard_machine_tag
+      if match = Tag.send(match_method, tag)
+        wildcard_tag = true
+
+        # Get a hash from the matched components, extract operator and rebuild match without it
+        hsh = {}
+        match.each { |k, v| hsh[k] = v }
+        operator = hsh.delete(:operator) || "="
+        match = hsh.to_a
+
         str = match.map { |k, v|
-          sanitize_sql(["#{tags_alias}.#{k} = ?", v])
+          if k.to_sym == :value and options[:comparison_match]
+            sanitize_sql(["CAST(#{tags_alias}.#{k} AS DECIMAL) #{operator} ?", v.to_f])
+          else
+            sanitize_sql(["#{tags_alias}.#{k} = ?", v])
+          end
         }.join(" AND ")
       else
         str = sanitize_sql(["#{tags_alias}.name = ?", tag])
       end
 
       if block_given?
-        str = yield(machine_tag, str)
+        str = yield(wildcard_tag, str)
       end
 
       str
     end
 
+    # Generate SQL WHERE clause to match any tag in tags
     def match_any_tag_sql(tags, options = {})
       tag_sql = tags.map { |t|
-        conditions_for_tag t, options do |machine_tag, condition|
-          machine_tag ? "(#{condition})" : condition
+        conditions_for_tag t, options do |wildcard_tag, condition|
+          wildcard_tag ? "(#{condition})" : condition
         end
       }.join(" OR ")
     end
 
+    # Generate SQL WHERE clause to match all tags in tags
     def match_all_tags_sql(tags, options = {})
       tag_sql = tags.map { |t|
         # Create sub-requests returning taggable IDs being tagged by each tag
@@ -83,7 +97,7 @@ module HasMachineTags
                  "LEFT JOIN #{Tag.table_name} #{tags_alias} ON #{taggings_alias}.tag_id = #{tags_alias}.id " +
                  "WHERE #{taggings_alias}.taggable_type = #{quote_value(base_class.name)} AND ("
 
-        conditions_for_tag t, options do |machine_tag, condition|
+        conditions_for_tag t, options do |wildcard_tag, condition|
           string += "#{condition})"
         end
 
