@@ -92,5 +92,19 @@ describe "Finder" do
       end
     end
 
+    describe "when queried with comparison_match" do
+
+      it "finds taggables using a comparison operator" do
+        @paris  = TaggableModel.create(:tag_list => "geo:lat=48.856578, geo:long=2.351828")
+        @nyc    = TaggableModel.create(:tag_list => "geo:lat=40.713361, geo:long=-74.005594")
+        @sydney = TaggableModel.create(:tag_list => "geo:lat=-33.856111, geo:long=151.1925")
+
+        TaggableModel.tagged_with("geo:lat>=0, *:lat<90", { :match_all => true, :comparison_match => true }).should == [@paris, @nyc]  # Northern hemisphere
+        TaggableModel.tagged_with("geo:long>=0, long<180", { :match_all => true, :comparison_match => true }).should == [@paris, @sydney] # East hemisphere (ref. Greenwich)
+        TaggableModel.tagged_with("<=0", { :comparison_match => true }).should == [@nyc, @sydney]
+      end
+
+    end
+
   end  
 end
